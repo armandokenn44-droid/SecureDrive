@@ -38,17 +38,20 @@ router.post("/login", async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "8h" }
-    );
-     await logActivity({
-      userId: user.id,
-      userName: user.email,
-      action: "User logged in",
-      detail: null,
-    });
-
+  {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: "8h" }
+);
+   await logActivity({
+  userId: user.id,
+  userName: user.email,
+  action: "User logged in",
+  detail: null,
+});
     res.json({
       token,
       user: {

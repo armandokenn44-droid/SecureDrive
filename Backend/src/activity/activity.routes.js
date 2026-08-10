@@ -4,29 +4,36 @@ import { pool } from "../db/pool.js";
 
 const router = Router();
 
-// --------------------------------------------------
-// Helper : enregistrer une action (à appeler depuis d'autres routes)
-// --------------------------------------------------
 export async function logActivity({ userId, userName, action, detail = null }) {
+  console.log("LOG ACTIVITY:", { userId, userName, action, detail });
   try {
+    let name = userName;
+
+    // Si ce n'est pas un vrai email, on lit dans Neon
+    if (userId && (!name || !String(name).includes("@"))) {
+      const r = await pool.query(
+        `SELECT email FROM users WHERE id = $1`,
+        [userId]
+      );
+      if (r.rows[0]?.email) {
+        name = r.rows[0].email;
+      }
+    }
+
+    if (!name) {
+      name = userId ? `User #${userId}` : "System";
+    }
+
     await pool.query(
       `INSERT INTO activity_logs (user_id, user_name, action, detail)
        VALUES ($1, $2, $3, $4)`,
-      [
-        userId ?? null,
-        userName || (userId ? `User #${userId}` : "System"),
-        action,
-        detail,
-      ]
+      [userId ?? null, name, action, detail]
     );
   } catch (err) {
     console.error("Activity log error:", err.message);
   }
 }
 
-// --------------------------------------------------
-// GET /api/activity — Super Admin + Manager seulement
-// --------------------------------------------------
 router.get(
   "/",
   requireAuth,

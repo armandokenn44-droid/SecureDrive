@@ -2,6 +2,7 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import { requireAuth, requireRole } from "../middleware/auth.middleware.js";
 import { pool } from "../db/pool.js";
+import { logActivity } from "../activity/activity.routes.js";
 
 const router = Router();
 
@@ -51,7 +52,7 @@ router.post("/", requireRole("Super Admin", "Manager"), async (req, res) => {
 
     await logActivity({
       userId: req.user.userId,
-      userName: req.user.email,
+      userName: req.user.email || `User #${req.user.userId}`,
       action: "Created user account",
       detail: email,
     });

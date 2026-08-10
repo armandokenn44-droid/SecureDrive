@@ -54,7 +54,7 @@ router.post("/", async (req, res) => {
 
     await logActivity({
       userId: req.user.userId,
-      userName: req.user.email,
+      userName: req.user.email ||`User #${req.user.userId}`,
       action: "Shared a file",
       detail: `${fileName} → ${email} (${permission})`,
     });

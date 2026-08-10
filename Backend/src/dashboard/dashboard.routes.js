@@ -66,6 +66,12 @@ router.get("/", async (req, res) => {
     );
     const sharedWithMe = sharedRes.rows[0].total;
 
+    const favRes = await pool.query(
+         `SELECT COUNT(*)::int AS total FROM favorites WHERE user_id = $1`,
+          [userId]
+      );
+     const favoritesCount = favRes.rows[0].total;
+
     // --- 5 fichiers récents ---
     const recentFiles = [...files]
       .sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified))
@@ -94,6 +100,7 @@ router.get("/", async (req, res) => {
         filesCount,
         storageBytes,
         sharedWithMe,
+        favoritesCount,
       },
       recentFiles,
     });

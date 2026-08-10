@@ -111,7 +111,7 @@ router.post("/upload", requireAuth, upload.single("file"), async (req, res) => {
 
     await logActivity({
       userId: req.user.userId,
-      userName: req.user.email || req.user.userName || `User #${req.user.userId}`,
+      userName: req.user.email ||`User #${req.user.userId}`,
       action: "Uploaded a file",
       detail: originalname,
     });

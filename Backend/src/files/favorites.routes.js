@@ -87,7 +87,7 @@ router.post("/", async (req, res) => {
 
     await logActivity({
       userId: req.user.userId,
-      userName: req.user.email,
+      userName: req.user.email||`User #${req.user.userId}`,
       action: "Added to favorites",
       detail: fileName,
     });
