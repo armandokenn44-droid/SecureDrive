@@ -3,11 +3,6 @@ import { useOutletContext, useNavigate } from "react-router-dom";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:4000";
 
-function formatDate(value) {
-  if (!value) return "—";
-  return new Date(value).toLocaleString("fr-FR");
-}
-
 export default function ActivityLog() {
   const { user } = useOutletContext();
   const navigate = useNavigate();
@@ -16,7 +11,7 @@ export default function ActivityLog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Seuls Super Admin et Manager
+  // Seuls Super Admin et Manager ont accès
   useEffect(() => {
     if (user && user.role !== "Super Admin" && user.role !== "Manager") {
       navigate("/admin/dashboard");
@@ -24,34 +19,56 @@ export default function ActivityLog() {
   }, [user, navigate]);
 
   useEffect(() => {
-    async function load() {
-      setLoading(true);
-      setError("");
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${API_BASE}/api/activity`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.error || "Could not load activity");
-          return;
-        }
-        setActivities(data.activities || []);
-      } catch {
-        setError("Cannot connect to server");
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
+    // eslint-disable-next-line react-hooks/immutability
+    loadActivity();
   }, []);
+
+  async function loadActivity() {
+    setLoading(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/api/activity`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Could not load activity log");
+        return;
+      }
+      // On force la lecture directe de user_name renvoyé par le backend
+      setActivities(data.activities || []);
+    } catch {
+      setError("Cannot connect to server");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function formatDateTime(value) {
+    if (!value) return "—";
+    const d = new Date(value);
+    return (
+      d.toLocaleDateString("fr-FR") +
+      " " +
+      d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+    );
+  }
+
+  function displayUser(a) {
+    // user_name doit déjà être un vrai email venant du backend.
+    // Ce filet de sécurité n'affiche "User #id" QUE si vraiment rien n'est venu.
+    if (a.user_name && a.user_name.trim().length > 0) {
+      return a.user_name;
+    }
+    return a.user_id ? `User #${a.user_id}` : "System";
+  }
 
   return (
     <div>
       <h2 className="page-heading">Activity Log</h2>
       <p className="page-subtext">
-        Recent actions across SecureDrive (uploads, shares, admin actions…).
+        Recent actions across SecureDrive ({activities.length} entries).
       </p>
 
       {error && (
@@ -67,7 +84,7 @@ export default function ActivityLog() {
           <div className="empty-state">
             <div className="empty-state-title">No activity yet</div>
             <div className="empty-state-text">
-              Actions like uploads will appear here once logged.
+              Upload a file or share a document — actions will appear here.
             </div>
           </div>
         ) : (
@@ -83,10 +100,12 @@ export default function ActivityLog() {
             <tbody>
               {activities.map((a) => (
                 <tr key={a.id}>
-                  <td style={{ fontWeight: 600 }}>{a.user_name || (a.user_id ? `User #${a.user_id}` : "—")}</td>
+                  <td style={{ fontWeight: 600 }}>{displayUser(a)}</td>
                   <td>{a.action}</td>
-                  <td style={{ color: "var(--text-secondary)" }}>{a.detail || "—"}</td>
-                  <td>{formatDate(a.created_at)}</td>
+                  <td style={{ color: "var(--text-secondary)" }}>
+                    {a.detail || "—"}
+                  </td>
+                  <td>{formatDateTime(a.created_at)}</td>
                 </tr>
               ))}
             </tbody>

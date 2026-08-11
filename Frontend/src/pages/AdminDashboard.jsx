@@ -43,6 +43,7 @@ export default function AdminDashboard() {
       setError("");
       try {
         const token = localStorage.getItem("token");
+
         const res = await fetch(`${API_BASE}/api/dashboard`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -91,7 +92,7 @@ export default function AdminDashboard() {
 
   const { canSeeUserStats, stats, recentFiles } = data;
 
-  // ========== DASHBOARD USER (style Daniel) ==========
+  // ========== DASHBOARD USER ==========
   if (!canSeeUserStats) {
     return (
       <div>
@@ -122,7 +123,7 @@ export default function AdminDashboard() {
           <StatCard
             icon={<StarIcon />}
             color="amber"
-            value="—"
+            value={stats.favoritesCount ?? 0}
             label="Favorites"
           />
         </div>
@@ -141,7 +142,7 @@ export default function AdminDashboard() {
             </div>
             {recentFiles.length === 0 ? (
               <p style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-                No files yet. Upload one to get started.
+                No files yet.
               </p>
             ) : (
               recentFiles.map((file) => (
@@ -167,24 +168,6 @@ export default function AdminDashboard() {
               </div>
               <div style={{ color: "var(--text-secondary)", fontSize: "0.85rem" }}>
                 of 25 GB used
-              </div>
-              <div
-                style={{
-                  marginTop: 12,
-                  height: 8,
-                  background: "var(--border, #e2e8f0)",
-                  borderRadius: 99,
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    width: `${Math.min(100, (stats.storageBytes / (25 * 1024 * 1024 * 1024)) * 100)}%`,
-                    height: "100%",
-                    background: "#2563eb",
-                    borderRadius: 99,
-                  }}
-                />
               </div>
             </div>
             <button
@@ -284,7 +267,8 @@ export default function AdminDashboard() {
             activities.map((a) => (
               <div className="activity-row" key={a.id}>
                 <div className="activity-text">
-                  <b>{a.user_name || "User"}</b> {a.action}
+                  <b>{a.user_name || (a.user_id ? `User #${a.user_id}` : "User")}</b>{" "}
+                  {a.action}
                   {a.detail ? ` — ${a.detail}` : ""}
                 </div>
                 <div className="activity-time">
