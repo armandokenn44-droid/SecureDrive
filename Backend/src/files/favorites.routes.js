@@ -2,20 +2,22 @@ import { Router } from "express";
 import { requireAuth } from "../middleware/auth.middleware.js";
 import { pool } from "../db/pool.js";
 import { ListObjectsV2Command } from "@aws-sdk/client-s3";
-import { s3Client, BUCKET_NAME } from "../config/s3Client.js";
+import { BUCKET_NAME } from "../config/s3Client.js";
+import { getTemporaryS3Client } from "../config/stsClient.js";
 import { logActivity } from "../activity/activity.routes.js";
 
 const router = Router();
 router.use(requireAuth);
 
-// GET /api/favorites/recent  ← AVANT la route "/" si besoin, et bien déclarée
+// GET /api/favorites/recent
 router.get("/recent", async (req, res) => {
   try {
+    const s3 = await getTemporaryS3Client(`user-${req.user.userId}`);
     const isAdmin =
       req.user.role === "Super Admin" || req.user.role === "Manager";
     const prefix = isAdmin ? "uploads/" : `uploads/${req.user.userId}/`;
 
-    const listRes = await s3Client.send(
+    const listRes = await s3.send(
       new ListObjectsV2Command({
         Bucket: BUCKET_NAME,
         Prefix: prefix,
@@ -24,7 +26,7 @@ router.get("/recent", async (req, res) => {
     );
 
     const files = (listRes.Contents || [])
-      .filter((item) => item.Key && !item.Key.endsWith("/"))
+      .filter((item) => item.Key && !item.Key.endsWith("/") && !item.Key.endsWith(".keep"))
       .map((item) => {
         const raw = item.Key.split("/").pop();
         const name = raw.replace(
@@ -87,7 +89,7 @@ router.post("/", async (req, res) => {
 
     await logActivity({
       userId: req.user.userId,
-      userName: req.user.email||`User #${req.user.userId}`,
+      userName: req.user.email || `User #${req.user.userId}`,
       action: "Added to favorites",
       detail: fileName,
     });
@@ -123,7 +125,7 @@ router.delete("/", async (req, res) => {
 
     await logActivity({
       userId: req.user.userId,
-      userName: req.user.email || req.user.userName || `User #${req.user.userId}`,
+      userName: req.user.email || `User #${req.user.userId}`,
       action: "Removed from favorites",
       detail: result.rows[0].file_name,
     });
